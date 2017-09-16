@@ -1,0 +1,15 @@
+{
+  "name": "tedious-connection-pool",
+  "version": "1.0.0",
+  "description": "A connection pool for tedious (TDS Driver)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Miles Hingston <miles@bitshift.cc>",
+  "license": "MIT",
+  "dependencies": {
+    "tedious": "^2.0.1"
+  }
+}
