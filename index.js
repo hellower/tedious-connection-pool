@@ -6,10 +6,10 @@ class ConnectionPool
     constructor(poolConfig, connectionConfig)
     {
         this.config = {pool: poolConfig, connection: connectionConfig};
-        this.config.pool.min = this.config.pool.min || 1;
-        this.config.pool.max = this.config.pool.max || 10;
-        this.config.pool.idleTimeout = this.config.pool.idleTimeout || 30000;
-        this.config.pool.acquireTimeout = this.config.pool.acquireTimeout || 60000;
+        this.config.pool.min = this.config.pool.min !== undefined ? this.config.pool.min : 1;
+        this.config.pool.max = this.config.pool.max !== undefined ? this.config.pool.max : 10;
+        this.config.pool.idleTimeout = this.config.pool.idleTimeout !== undefined ? this.config.pool.idleTimeout : 30000;
+        this.config.pool.acquireTimeout = this.config.pool.acquireTimeout !== undefined ? this.config.pool.acquireTimeout : 60000;
         this.config.pool.log = this.config.pool.log || false;
 
         if(typeof this.config.pool.log === 'function')

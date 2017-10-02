@@ -1,6 +1,6 @@
 {
   "name": "tedious-connection-pool",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A connection pool for tedious (TDS Driver)",
   "main": "index.js",
   "scripts": {
