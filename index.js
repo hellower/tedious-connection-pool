@@ -205,7 +205,7 @@ class ConnectionPool
         {
             for(const connection of this.connections)
             {
-                if(connection.meta.available)
+                if(connection.meta.available && connection.loggedIn)
                 {
                     connection.meta.available = false;
                     connection.meta.timestamp = new Date();
