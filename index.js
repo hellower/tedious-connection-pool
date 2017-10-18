@@ -33,6 +33,7 @@ class ConnectionPool
         this.connections = [];
         this.connectionRequests = 0;
         this.drained = false;
+        this.timestamps = [];
         this.connect();
     }
 
@@ -67,15 +68,20 @@ class ConnectionPool
             {
                 const error = new Error(`Unable to acquire connection from pool in ${this.config.pool.acquireTimeout}ms.`);
                 clearTimeout(client.timerID);
-                client.callback(error);
 
-                for(let i = this.waitingClients.length-1; i >= 0; i--)
+                if(!resolved)
                 {
-                    if(this.waitingClients[i].id === client.id)
+                    for(let i = this.waitingClients.length-1; i >= 0; i--)
                     {
-                        this.waitingClients.splice(i, 1);
-                        break;
+                        if(this.waitingClients[i].id === client.id)
+                        {
+                            this.waitingClients.splice(i, 1);
+                            break;
+                        }
                     }
+
+                    client.callback(error);
+                    return reject(error);
                 }
             };
             
@@ -141,8 +147,14 @@ class ConnectionPool
 
     openConnection()
     {
-        if(this.connectionRequests + this.connections.length < this.config.pool.max)
+        if(this.connectionRequests + this.connections.length < this.config.pool.max && (this.timestamps.length <= 1 || this.timestamps[this.timestamps.length-1] - this.timestamps[0] >= this.config.pool.idleTimeout))
         {
+            if(this.timestamps.length >= this.config.pool.max)
+            {
+                this.timestamps.shift();
+            }
+
+            this.timestamps.push(new Date());
             this.connectionRequests++;
             const connection = new tedious.Connection(this.config.connection);
             this.prepareConnection(connection);
