@@ -50,6 +50,7 @@ class ConnectionPool
                 if(!resolved)
                 {
                     logger.log('debug', `Responding to client: ${client.id} (waiting clients: ${this.waitingClients.length})`);
+                    clearTimeout(client.timerID);
                     resolved = true;
     
                     if(error)
@@ -67,22 +68,17 @@ class ConnectionPool
             const timerFn = () =>
             {
                 const error = new Error(`Unable to acquire connection from pool in ${this.config.pool.acquireTimeout}ms.`);
-                clearTimeout(client.timerID);
 
-                if(!resolved)
+                for(let i = this.waitingClients.length-1; i >= 0; i--)
                 {
-                    for(let i = this.waitingClients.length-1; i >= 0; i--)
+                    if(this.waitingClients[i].id === client.id)
                     {
-                        if(this.waitingClients[i].id === client.id)
-                        {
-                            this.waitingClients.splice(i, 1);
-                            break;
-                        }
+                        this.waitingClients.splice(i, 1);
+                        break;
                     }
-
-                    client.callback(error);
-                    return reject(error);
                 }
+
+                client.callback(error);
             };
             
             client.id = ++this.clientID;
@@ -223,7 +219,7 @@ class ConnectionPool
                     connection.meta.timestamp = new Date();
                     clearTimeout(connection.meta.timerID);
                     connection.meta.timerID = setTimeout(() => this.removeConnection(connection, true), this.config.pool.idleTimeout);
-                    logger.log('debug', `Reusing existing connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
+                    logger.log('debug', `Reusing connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
                     return client.callback(null, connection);
                 }
             }
