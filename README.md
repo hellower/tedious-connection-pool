@@ -121,7 +121,7 @@ pool.drain();
 * `poolConfig` {Object} the pool configuration object
   * `min` {Number} The minimun of connections there can be in the pool. Default = `10`
   * `max` {Number} The maximum number of connections there can be in the pool. Default = `50`
-  * `idleTimeout` {Number} The number of milliseconds before closing an unused connection. Default = `300000`
+  * `idleTimeout` {Number} The number of milliseconds before closing an unused connection. Default = `30000`
   * `acquireTimeout` {Number} The number of milliseconds to wait for a connection, before returning an error. Default = `60000`
   * `log` {Boolean|Function} Set to true to have debug log written to the console or pass a function to receive the log messages. Default = `false`
   
