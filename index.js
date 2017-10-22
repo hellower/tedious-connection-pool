@@ -1,5 +1,5 @@
 const tedious = require('tedious');
-const logger = {};
+let logger = {};
 
 class ConnectionPool
 {
@@ -12,7 +12,12 @@ class ConnectionPool
         this.config.pool.acquireTimeout = this.config.pool.acquireTimeout !== undefined ? this.config.pool.acquireTimeout : 60000;
         this.config.pool.log = this.config.pool.log || false;
 
-        if(typeof this.config.pool.log === 'function')
+        if(typeof this.config.pool.log.log === 'function')
+        {
+            logger = this.config.pool.log;
+        }
+        
+        else if(typeof this.config.pool.log === 'function')
         {
             logger.log = this.config.pool.log;
         }
@@ -145,12 +150,6 @@ class ConnectionPool
     {
         if(this.connectionRequests + this.connections.length < this.config.pool.max && (this.timestamps.length <= 1 || this.timestamps[this.timestamps.length-1] - this.timestamps[0] >= this.config.pool.idleTimeout))
         {
-            if(this.timestamps.length >= this.config.pool.max)
-            {
-                this.timestamps.shift();
-            }
-
-            this.timestamps.push(new Date());
             this.connectionRequests++;
             const connection = new tedious.Connection(this.config.connection);
             this.prepareConnection(connection);
@@ -201,6 +200,12 @@ class ConnectionPool
                 }
             }
 
+            if(this.timestamps.length >= this.config.pool.max)
+            {
+                this.timestamps.shift();
+            }
+
+            this.timestamps.push(new Date());
             this.connect();
         }
     }
