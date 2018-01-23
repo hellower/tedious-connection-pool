@@ -95,10 +95,9 @@ class ConnectionPool
 
     connect()
     {
-        logger.log('debug', `Refilling connection pool (pool size: ${this.connections.length})`);
-
         if(this.connections.length < this.config.pool.min)
         {
+            logger.log('debug', `Refilling connection pool (pool size: ${this.connections.length})`);
             const needed = this.config.pool.min - this.connections.length;
             
             for(let i=0; i < needed; i++)
@@ -117,8 +116,18 @@ class ConnectionPool
     addConnection(connection)
     {
         logger.log('debug', `Opened connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
-        this.connections.push(connection);
-        this.respond();
+
+        if(this.connections.length+1 <= this.config.pool.max)
+        {
+            this.connections.push(connection);
+            this.respond();
+        }
+        
+        else
+        {
+            logger.log('debug', `Connection pool is full.`);
+            connection.close();
+        }
     }
 
     prepareConnection(connection)
@@ -133,7 +142,7 @@ class ConnectionPool
         connection.once('error', (error) => this.handleError(error, connection));
         connection.once('infoMessage', (info) => logger.log('debug', `Error: ${info.number}. State: ${info.state}. Class: ${info.class}. Message: ${info.message}. Procedure: ${info.procedure}. Line Number: ${info.lineNumber}`));
         connection.once('errorMessage', (error) => logger.log('debug', `Error: ${error.number}. State: ${error.state}. Class: ${error.class}. Message: ${error.message}. Procedure: ${error.procedure}. Line Number: ${error.lineNumber}`));
-        connection.once('end', () => this.removeConnection(connection));
+        connection.once('end', () => this.removeConnection(connection, true));
         connection.release = () =>
         {
             connection.meta.timestamp = new Date();
@@ -168,22 +177,25 @@ class ConnectionPool
         }
     }
 
-    removeConnection(connection)
+    removeConnection(connection, force)
     {
-        ['connect', 'error', 'errorMessage', 'infoMessage', 'end'].forEach((eventName) => connection.removeAllListeners(eventName));
-        connection.close();
-        
-        for(let i=this.connections.length-1; i >= 0; i--)
+        if(force || (new Date() - connection.meta.timestamp >= this.config.pool.idleTimeout && this.connections.length-1 >= this.config.pool.min))
         {
-            if(this.connections[i].meta.id === connection.meta.id)
+            ['connect', 'error', 'errorMessage', 'infoMessage', 'end'].forEach((eventName) => connection.removeAllListeners(eventName));
+            connection.close();
+            
+            for(let i=this.connections.length-1; i >= 0; i--)
             {
-                this.connections.splice(i, 1);
-                break;
+                if(this.connections[i].meta.id === connection.meta.id)
+                {
+                    this.connections.splice(i, 1);
+                    break;
+                }
             }
-        }
 
-        logger.log('debug', `Closed connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
-        this.connect();
+            logger.log('debug', `Closed connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
+            this.connect();
+        }
     }
 
     respond()
