@@ -161,7 +161,7 @@ class ConnectionPool
             return 0;
         });
 
-        if(this.connections.length+1 < this.config.pool.max && (this.connections.length <= 1 || timestamps[timestamps.length-1] - timestamps[0] >= this.config.pool.idleTimeout))
+        if(this.connections.length+1 <= this.config.pool.max && (this.connections.length <= 1 || timestamps[timestamps.length-1] - timestamps[0] >= this.config.pool.idleTimeout))
         {
             const connection = new tedious.Connection(this.config.connection);
             this.prepareConnection(connection);
