@@ -134,8 +134,8 @@ class ConnectionPool
 
         connection.once('connect', () => this.addConnection(connection));
         connection.once('error', (error) => this.handleError(error, connection));
-        connection.once('infoMessage', (info) => logger.log('info', `Error: ${info.number}. State: ${info.state}. Class: ${info.class}. Message: ${info.message}. Procedure: ${info.procedure}. Line Number: ${info.lineNumber}`));
-        connection.once('errorMessage', (error) => logger.log('error', `Error: ${error.number}. State: ${error.state}. Class: ${error.class}. Message: ${error.message}. Procedure: ${error.procedure}. Line Number: ${error.lineNumber}`));
+        connection.once('infoMessage', (info) => logger.log('debug', `Error: ${info.number}. State: ${info.state}. Class: ${info.class}. Message: ${info.message}. Procedure: ${info.procedure}. Line Number: ${info.lineNumber}`));
+        connection.once('errorMessage', (error) => logger.log('debug', `Error: ${error.number}. State: ${error.state}. Class: ${error.class}. Message: ${error.message}. Procedure: ${error.procedure}. Line Number: ${error.lineNumber}`));
         connection.once('end', () => this.removeConnection(connection));
         connection.release = () =>
         {
