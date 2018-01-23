@@ -36,9 +36,7 @@ class ConnectionPool
         this.connectionID = 0;
         this.waitingClients = [];
         this.connections = [];
-        this.connectionRequests = 0;
         this.drained = false;
-        this.timestamps = [];
         this.connect();
     }
 
@@ -119,7 +117,6 @@ class ConnectionPool
     addConnection(connection)
     {
         logger.log('debug', `Opened connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
-        this.connectionRequests--;
         this.connections.push(connection);
         this.respond();
     }
@@ -130,7 +127,7 @@ class ConnectionPool
         connection.meta.id = ++this.connectionID;
         connection.meta.timestamp = new Date();
         connection.meta.available = true;
-        connection.meta.timerID = setTimeout(() => this.removeConnection(connection, true), this.config.pool.idleTimeout);
+        connection.meta.timerID = setTimeout(() => this.removeConnection(connection), this.config.pool.idleTimeout);
 
         connection.once('connect', () => this.addConnection(connection));
         connection.once('error', (error) => this.handleError(error, connection));
@@ -141,73 +138,52 @@ class ConnectionPool
         {
             connection.meta.timestamp = new Date();
             connection.meta.available = true;
-            connection.meta.timerID = setTimeout(() => this.removeConnection(connection, true), this.config.pool.idleTimeout);
+            clearTimeout(connection.meta.timerID);
+            connection.meta.timerID = setTimeout(() => this.removeConnection(connection), this.config.pool.idleTimeout);
             this.respond();
         };
     }
 
     openConnection()
     {
-        if(this.connectionRequests + this.connections.length < this.config.pool.max && (this.timestamps.length <= 1 || this.timestamps[this.timestamps.length-1] - this.timestamps[0] >= this.config.pool.idleTimeout))
+        const timestamps = this.connections.sort((a, b) =>
         {
-            this.connectionRequests++;
+            if(a.meta.timestamp < b.meta.timestamp)
+            {
+                return -1;
+            }
+
+            else if(a.meta.timestamp > b.meta.timestamp)
+            {
+                return 1;
+            }
+
+            return 0;
+        });
+
+        if(this.connections.length+1 < this.config.pool.max && (this.connections.length <= 1 || timestamps[timestamps.length-1] - timestamps[0] >= this.config.pool.idleTimeout))
+        {
             const connection = new tedious.Connection(this.config.connection);
             this.prepareConnection(connection);
         }
     }
 
-    removeConnection(connection, checkTimestamp)
+    removeConnection(connection)
     {
-        let proceed = false;
-        let found = false;
-
-        for(let i=0; i < this.connections.length; i++)
+        ['connect', 'error', 'errorMessage', 'infoMessage', 'end'].forEach((eventName) => connection.removeAllListeners(eventName));
+        connection.close();
+        
+        for(let i=this.connections.length-1; i >= 0; i--)
         {
             if(this.connections[i].meta.id === connection.meta.id)
             {
-                found = true;
+                this.connections.splice(i, 1);
                 break;
             }
         }
 
-        if(!found)
-        {
-            this.connectionRequests--;
-        }
-
-        if(!checkTimestamp)
-        {
-            logger.log('debug', `Closed connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
-            proceed = true;
-        }
-
-        else if(new Date() - connection.meta.timestamp >= this.config.pool.idleTimeout && connection.meta.available && this.connections.length > this.config.pool.min)
-        {
-            logger.log('debug', `Closed stale connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
-            proceed = true;
-        }
-
-        if(proceed)
-        {
-            ['connect', 'error', 'errorMessage', 'infoMessage'].forEach((eventName) => connection.removeAllListeners(eventName));
-            
-            for(let i=this.connections.length-1; i >= 0; i--)
-            {
-                if(this.connections[i].meta.id === connection.meta.id)
-                {
-                    this.connections.splice(i, 1);
-                    break;
-                }
-            }
-
-            if(this.timestamps.length >= this.config.pool.max)
-            {
-                this.timestamps.shift();
-            }
-
-            this.timestamps.push(new Date());
-            this.connect();
-        }
+        logger.log('debug', `Closed connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
+        this.connect();
     }
 
     respond()
@@ -223,7 +199,7 @@ class ConnectionPool
                     connection.meta.available = false;
                     connection.meta.timestamp = new Date();
                     clearTimeout(connection.meta.timerID);
-                    connection.meta.timerID = setTimeout(() => this.removeConnection(connection, true), this.config.pool.idleTimeout);
+                    connection.meta.timerID = setTimeout(() => this.removeConnection(connection), this.config.pool.idleTimeout);
                     logger.log('debug', `Reusing connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
                     return client.callback(null, connection);
                 }
