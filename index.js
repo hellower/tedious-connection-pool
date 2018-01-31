@@ -113,8 +113,14 @@ class ConnectionPool
         connection.close();
     }
 
-    addConnection(connection)
+    addConnection(error, connection)
     {
+        if(error)
+        {
+            this.handleError(error, connection);
+            return;
+        }
+        
         logger.log('debug', `Opened connection: ${connection.meta.id} (pool size: ${this.connections.length})`);
 
         if(this.connections.length+1 <= this.config.pool.max)
@@ -138,7 +144,7 @@ class ConnectionPool
         connection.meta.available = true;
         connection.meta.timerID = setTimeout(() => this.removeConnection(connection), this.config.pool.idleTimeout);
 
-        connection.once('connect', () => this.addConnection(connection));
+        connection.once('connect', (error) => this.addConnection(error, connection));
         connection.once('error', (error) => this.handleError(error, connection));
         connection.once('infoMessage', (info) => logger.log('debug', `Error: ${info.number}. State: ${info.state}. Class: ${info.class}. Message: ${info.message}. Procedure: ${info.procedure}. Line Number: ${info.lineNumber}`));
         connection.once('errorMessage', (error) => logger.log('debug', `Error: ${error.number}. State: ${error.state}. Class: ${error.class}. Message: ${error.message}. Procedure: ${error.procedure}. Line Number: ${error.lineNumber}`));
