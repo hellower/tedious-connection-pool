@@ -179,7 +179,21 @@ class ConnectionPool
         if(this.connections.length+1 <= this.config.pool.max && (this.connections.length <= 1 || timestamps[timestamps.length-1] - timestamps[0] >= this.config.pool.idleTimeout))
         {
             const connection = new tedious.Connection(this.config.connection);
-            this.prepareConnection(connection);
+            
+            // kss
+            /* 아래 이유로 이코드 추가함
+            tedious deprecated in the next major version of `tedious`, creating a new `connection` instance will no longer establish a connection to the server automatically. 
+            please use the new `connect` helper function or call the `.connect` method on the newly created `connection` object to silence this message
+            */            
+            connection.connect(function(err) {
+                if (err) {
+                    logger.log('debug',err);
+                    return -2;
+                } 
+                
+                logger.log('debug','connected !!');                    
+                this.prepareConnection(connection);                
+            })           
         }
     }
 
