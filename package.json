@@ -10,6 +10,6 @@
   "author": "Miles Hingston <miles@bitshift.cc>",
   "license": "MIT",
   "dependencies": {
-    "tedious": "^11.0.3"
+    "tedious": "^11.0.4"
   }
 }
