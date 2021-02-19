@@ -20,13 +20,24 @@ var Request = require('tedious').Request;
 var poolConfig = {
     min: 2,
     max: 4,
+    idleTimeout: 60000,
     log: true
 };
 
 var connectionConfig = {
-    userName: 'login',
-    password: 'password',
     server: 'localhost'
+    "options": {
+      "encrypt": false,
+      "port": 1433,
+      "database": "model"
+    },
+    "authentication": {
+      "type": "default",
+      "options": {
+        "userName": "sa",
+        "password": "xxxx"
+      }
+    }    
 };
 
 //create the pool
