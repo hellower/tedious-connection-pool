@@ -84,9 +84,19 @@ var poolConfig = {
 };
 
 var connectionConfig = {
-    userName: 'login',
-    password: 'password',
     server: 'localhost'
+    "options": {
+      "encrypt": false,
+      "port": 1433,
+      "database": "model"
+    },
+    "authentication": {
+      "type": "default",
+      "options": {
+        "userName": "sa",
+        "password": "xxxx"
+      }
+    }    
 };
 
 //create the pool
